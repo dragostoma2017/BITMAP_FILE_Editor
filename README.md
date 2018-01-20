@@ -1,0 +1,48 @@
+BYTE* LoadBMP ( int* width, int* height, long* size, LPCTSTR bmpfile )
+{
+	BITMAPFILEHEADER bmpheader;
+	BITMAPINFOHEADER bmpinfo;
+	DWORD bytesread
+	HANDLE file = CreateFile ( bmpfile , GENERIC_READ, FILE_SHARE_READ,
+		 NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL );
+	if ( NULL == file )
+		return NULL; // coudn't open file
+	if ( ReadFile ( file, &bmpheader, sizeof ( BITMAPFILEHEADER ), &bytesread, NULL ) == false )
+	{
+		CloseHandle ( file );
+		return NULL;
+	}
+	if ( ReadFile ( file, &bmpinfo, sizeof ( BITMAPINFOHEADER ), &bytesread, NULL ) == false )
+	{
+		CloseHandle ( file );
+		return NULL;
+	}
+	if ( bmpheader.bfType != 'MB' )
+	{
+		CloseHandle ( file );
+		return NULL;
+	}
+	*width   = bmpinfo.biWidth;
+	*height  = abs ( bmpinfo.biHeight );
+	if ( bmpinfo.biCompression != BI_RGB )
+	{
+		CloseHandle ( file );
+		return NULL;
+	}
+	if ( bmpinfo.biBitCount != 24 )
+	{
+		CloseHandle ( file );
+		return NULL;
+	}
+	*size = bmpheader.bfSize - bmpheader.bfOffBits;
+	BYTE* Buffer = new BYTE[ *size ];
+	SetFilePointer ( file, bmpheader.bfOffBits, NULL, FILE_BEGIN );
+	if ( ReadFile ( file, Buffer, *size, &bytesread, NULL ) == false )
+	{
+		delete [] Buffer;
+		CloseHandle ( file );
+		return NULL;
+	}
+	CloseHandle ( file );
+	return Buffer;
+}
